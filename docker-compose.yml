@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  webappusers-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      SA_PASSWORD: "StrongP@ssw0rd123"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1434:1433"  # Cambiar el puerto aquí para evitar conflicto con la instancia local
+    networks:
+      - webappusers-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P StrongP@ssw0rd123 -Q 'SELECT 1'"]
+      interval: 30s
+      retries: 10
+      start_period: 30s
+
+  webappusers:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      webappusers-db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Development"
+      ConnectionStrings__DbConection: "Server=webappusers-db;Database=WebAppUsersDb;User Id=sa;Password=StrongP@ssw0rd123;TrustServerCertificate=True;"
+    networks:
+      - webappusers-network
+
+networks:
+  webappusers-network:
+    driver: bridge
